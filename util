@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+use strict;
+use Getopt::Long qw(GetOptions);
+use Pod::Usage qw(pod2usage);
+use lib './';
+use MediaIndex;
+
+my $man = 0;
+my $help = 0;
+my $source;
+my $target;
+my $index;
+my $sort;
+
+## Parse options and print usage if there is a syntax error,
+## or if usage was explicitly requested.
+GetOptions('help|?' => \$help,
+           "source=s" => \$source,
+           "target=s" => \$target,
+           'index'  => \$index,
+           'sort'   => \$sort
+) or pod2usage(2);
+pod2usage(1) if $help;
+
+# must specify an action - sort, index or both
+pod2usage(2) if (!(defined $index || defined $sort));
+
+if($index) {
+    print "Indexing\n";
+    MediaIndex::index_media($source);
+}
+
+if($sort) {
+    print "Sorting\n";
+}
+
+
+## If no arguments were given, then allow STDIN to be used only
+## if it's not connected to a terminal (otherwise print usage)
+#pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+
+__END__
+
+=head1 NAME
+
+util - Using GetOpt::Long and Pod::Usage
+
+=head1 SYNOPSIS
+
+util [options]
+
+ Options:
+   -help            brief help message
+
+   -source          source dir where media files are present
+
+   -target          target dir where sorted medial files should be moved under
+
+   -index           index media files recursively in subdirectories below this folder
+                    index operation extracts the timestamp from each media file, 
+                    then uses the timestamp to generate a target directory name where
+                    the file should be moved. result of the indexing operation
+                    is a file called 'media.idx'. Each row in this file specifies
+                    the source media file name and the target media file name.
+
+   -sort            perform move operation for all files in media.idx
+                    if media.idx isn't generated, return immediately
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=head1 DESCRIPTION
+
+B<This program> will read the given input file(s) and do something
+useful with the contents thereof.
+
+=cut

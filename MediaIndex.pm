@@ -26,7 +26,7 @@ sub index_files {
     my $media_fh = shift;
     my $skipped_fh = shift;
     my $path = shift;
-    
+    print "path = $path\n";    
     # Open the directory.
     opendir (DIR, $path)
         or die "Unable to open $path: $!";
@@ -57,7 +57,7 @@ sub index_files {
             # Here is where we recurse.
             # This makes a new call to index_files()
             # using a new directory we just found.
-            index_files ($media_fh, $_);
+            index_files ($media_fh, $skipped_fh, $_);
 
         # If it isn't a directory, lets just do some
         # processing on it.

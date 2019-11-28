@@ -4,6 +4,9 @@ use Getopt::Long qw(GetOptions);
 use Pod::Usage qw(pod2usage);
 use lib './';
 use MediaIndex;
+use MediaCopy;
+use MediaHelper;
+use File::Path qw(make_path);
 
 my $man = 0;
 my $help = 0;
@@ -11,6 +14,7 @@ my $source;
 my $target;
 my $index;
 my $sort;
+my $clean;
 
 ## Parse options and print usage if there is a syntax error,
 ## or if usage was explicitly requested.
@@ -18,20 +22,48 @@ GetOptions('help|?' => \$help,
            "source=s" => \$source,
            "target=s" => \$target,
            'index'  => \$index,
-           'sort'   => \$sort
+           'sort'   => \$sort,
+           'clean'  => \$clean
 ) or pod2usage(2);
 pod2usage(1) if $help;
+
+if($clean) {
+    if (MediaHelper::prompt_yn("Erase media.idx?")) {
+        system("rm media.idx");
+        system("rm skipped.idx");
+    }
+    exit;
+}
 
 # must specify an action - sort, index or both
 pod2usage(2) if (!(defined $index || defined $sort));
 
 if($index) {
     print "Indexing\n";
-    MediaIndex::index_media($source);
+    if (-e "media.idx" && !MediaHelper::prompt_yn("Overwrite media.idx?")) {
+        exit;
+    }
+
+    MediaIndex::index_media($source, $target);
 }
 
 if($sort) {
     print "Sorting\n";
+    
+    if (-e $target and -d $target and !MediaHelper::prompt_yn("$target exists. Overwrite?")) {
+        exit;
+    }
+
+    # create target dir if it doesn't exist
+    if (!(-e $target and -d $target)) {
+        # directory doesn't exist, create it
+        eval { make_path($target) };
+	if ($@) {
+            print "Couldn't create $target: $@";
+            return;
+	}
+    }
+    MediaCopy::copy_media();
 }
 
 
@@ -50,21 +82,23 @@ util - Using GetOpt::Long and Pod::Usage
 util [options]
 
  Options:
-   -help            brief help message
+   --help           brief help message
 
-   -source          source dir where media files are present
+   --source         source dir where media files are present
 
-   -target          target dir where sorted medial files should be moved under
+   --target         target dir where sorted medial files should be moved under
 
-   -index           index media files recursively in subdirectories below this folder
+   --index          index media files recursively in subdirectories below this folder
                     index operation extracts the timestamp from each media file, 
                     then uses the timestamp to generate a target directory name where
                     the file should be moved. result of the indexing operation
                     is a file called 'media.idx'. Each row in this file specifies
                     the source media file name and the target media file name.
 
-   -sort            perform move operation for all files in media.idx
+   --sort           perform move operation for all files in media.idx
                     if media.idx isn't generated, return immediately
+
+   --clean          Clean media.idx and do nothing
 
 =head1 OPTIONS
 

@@ -8,16 +8,18 @@ use File::Path qw(make_path);
 use File::Copy;
 use File::Basename;
 use File::Spec;
+use MediaHelper;
 
 use Exporter qw(import);
 our @EXPORT_OK = qw(index_media); 
 
 sub index_media {
     my $src_path = shift;
+    my $tgt_path = shift;
     # create index file
     open(my $media_fh, '>', 'media.idx');
     open(my $skipped_fh, '>', 'skipped.idx');
-    index_files($media_fh, $skipped_fh, $src_path);
+    index_files($media_fh, $skipped_fh, $src_path, $tgt_path);
     close $media_fh;
     close $skipped_fh;
 }
@@ -25,11 +27,13 @@ sub index_media {
 sub index_files {
     my $media_fh = shift;
     my $skipped_fh = shift;
-    my $path = shift;
-    print "path = $path\n";    
+    my $src_path = shift;
+    my $tgt_path = shift;
+
+    print "src = $src_path, target = $tgt_path\n";    
     # Open the directory.
-    opendir (DIR, $path)
-        or die "Unable to open $path: $!";
+    opendir (DIR, $src_path)
+        or die "Unable to open $src_path: $!";
 
     # Read in the files.
     # You will not generally want to process the '.' and '..' files,
@@ -48,7 +52,7 @@ sub index_files {
     #  so here we will use map() to tack it on.
     #  (note that this could also be chained with the grep
     #   mentioned above, during the readdir() ).
-    @files = map { $path . '/' . $_ } @files;
+    @files = map { $src_path . '/' . $_ } @files;
 
     my $idx_cnt = 0;
     for (@files) {
@@ -57,7 +61,7 @@ sub index_files {
             # Here is where we recurse.
             # This makes a new call to index_files()
             # using a new directory we just found.
-            index_files ($media_fh, $skipped_fh, $_);
+            index_files ($media_fh, $skipped_fh, $_, $tgt_path);
 
         # If it isn't a directory, lets just do some
         # processing on it.
@@ -73,7 +77,7 @@ sub index_files {
             my $ymd = (split / /, $date)[0];
             my ($year, $month, $date) = $ymd =~ /(\d+):(\d+):(\d+)/;
             my ($volume,$directories,$file) = File::Spec->splitpath( $_ );
-            my $tgt_name = "pics_".$year."_".$month."_".$date."/".$file;
+            my $tgt_name = $tgt_path."/pics_".$year."_".$month."_".$date."/".$file;
             my $src_name = $_;
             if (!defined $date) {
                 print "Exif data not found. Skipping $_\n";

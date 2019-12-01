@@ -33,7 +33,8 @@ sub copy_media {
 	if(!(-e $tfname)) {
 		#move($source, $tdir) or die "Copy failed: $!";
                 print("Copying $source to $target..");
-                copy($source, $target) or die "Copy failed: $!";
+                #copy($source, $target) or die "Copy failed: $!";
+                move($source, $target) or die "Move failed: $!";
                 $copy_cnt++;
                 print("Done\n");
 	} else {

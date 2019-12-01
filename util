@@ -13,7 +13,7 @@ my $help = 0;
 my $source;
 my $target;
 my $index;
-my $sort;
+my $copy;
 my $clean;
 
 ## Parse options and print usage if there is a syntax error,
@@ -22,7 +22,7 @@ GetOptions('help|?' => \$help,
            "source=s" => \$source,
            "target=s" => \$target,
            'index'  => \$index,
-           'sort'   => \$sort,
+           'copy'   => \$copy,
            'clean'  => \$clean
 ) or pod2usage(2);
 pod2usage(1) if $help;
@@ -35,20 +35,26 @@ if($clean) {
     exit;
 }
 
-# must specify an action - sort, index or both
-pod2usage(2) if (!(defined $index || defined $sort));
+# must specify an action - copy, index or both
+pod2usage(2) if (!(defined $index || defined $copy));
 
+my $ret = 1; # success
 if($index) {
     print "Indexing\n";
     if (-e "media.idx" && !MediaHelper::prompt_yn("Overwrite media.idx?")) {
         exit;
     }
 
-    MediaIndex::index_media($source, $target);
+    $ret = MediaIndex::index_media($source, $target);
 }
 
-if($sort) {
+if($copy) {
     print "Sorting\n";
+
+    # should we continue even if some files weren't indexed?
+    if($ret == 0 && !MediaHelper::prompt_yn("Some files were not indexed. Continue with copy?")) {
+        exit;
+    }
     
     if (-e $target and -d $target and !MediaHelper::prompt_yn("$target exists. Overwrite?")) {
         exit;
@@ -86,17 +92,16 @@ util [options]
 
    --source         source dir where media files are present
 
-   --target         target dir where sorted medial files should be moved under
+   --target         target dir where indexed medial files should be copied to
 
-   --index          index media files recursively in subdirectories below this folder
-                    index operation extracts the timestamp from each media file, 
-                    then uses the timestamp to generate a target directory name where
-                    the file should be moved. result of the indexing operation
-                    is a file called 'media.idx'. Each row in this file specifies
-                    the source media file name and the target media file name.
+   --index          Index media files recursively in subdirectories below source folder
+                    Extracts timestamp from each file, use the timestamp to generate 
+                    target directory name where the file should be placed. 
+                    indexing results are generated in 'media.idx'. Each row in this file
+                    specifies source and target media file names.
 
-   --sort           perform move operation for all files in media.idx
-                    if media.idx isn't generated, return immediately
+   --copy           Copy indexed files in media.idx to target directory
+                    if files weren't indexed, return immediately
 
    --clean          Clean media.idx and do nothing
 

@@ -19,9 +19,10 @@ sub index_media {
     # create index file
     open(my $media_fh, '>', 'media.idx');
     open(my $skipped_fh, '>', 'skipped.idx');
-    index_files($media_fh, $skipped_fh, $src_path, $tgt_path);
+    my $ret = index_files($media_fh, $skipped_fh, $src_path, $tgt_path);
     close $media_fh;
     close $skipped_fh;
+    return $ret;
 }
 
 sub index_files {
@@ -55,6 +56,7 @@ sub index_files {
     @files = map { $src_path . '/' . $_ } @files;
 
     my $idx_cnt = 0;
+    my $tot_cnt = scalar @files;
     for (@files) {
         # If the file is a directory
         if (-d $_) {
@@ -72,7 +74,13 @@ sub index_files {
 
             # extract timestamp info
             $exif->ExtractInfo($_);
+            
+            # some video formats (e.g. mp4) don't define DateTimeOriginal tag
+            # try MediaCreateDate instead
             my $date = $exif->GetValue('DateTimeOriginal', 'PrintConv');
+            if(!defined($date)) {
+                $date = $exif->GetValue('MediaCreateDate', 'PrintConv');
+            }
             # extract year, month, day from the string "y:m:d time"
             my $ymd = (split / /, $date)[0];
             my ($year, $month, $date) = $ymd =~ /(\d+):(\d+):(\d+)/;
@@ -89,5 +97,10 @@ sub index_files {
       }
    }
    print "Total $idx_cnt files indexed\n";
+   if($idx_cnt == $tot_cnt) {
+      return 1;
+   } else {
+      return 0;
+   }
 }
 1;
